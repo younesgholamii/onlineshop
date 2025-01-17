@@ -5,7 +5,8 @@ from utils import SendOtpCode
 import random
 from .models import OtpCode, User
 from django.contrib import messages
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 
@@ -88,9 +89,9 @@ class UserLoginVerifyView(View):
     
     def post(self, request):
         user_session = request.session['user_login_info']
-        code_instance = OtpCode.objects.get(phone_number=user_session['phone_number'])
         form = self.form_class(request.POST)
         if form.is_valid():
+            code_instance = OtpCode.objects.filter(phone_number=user_session['phone_number'])[0]
             cd = form.cleaned_data
             user = authenticate(request, phone_number=user_session['phone_number'], password=user_session['password'])
             if cd['code'] == code_instance.code:
@@ -102,3 +103,9 @@ class UserLoginVerifyView(View):
             return redirect('accounts:login_verify')
         return render(request, 'accounts/login.html', {'form': form})
 
+
+class UserLogoutView(LoginRequiredMixin, View):
+    def get(self, request):
+        logout(request)
+        messages.success(request, 'logout successfully', 'success')
+        return redirect('home:home')
